@@ -339,7 +339,8 @@ function openDetail(k) {
     '<div class="box"><div class="lbl">Статус</div><div class="sgrid">' +
     STATUSES.map(([s, n]) => '<button data-s="' + s + '" class="' + (st.s === s ? 'on' : '') + '">' + n + '</button>').join('') + '</div></div>' +
     '<div class="box"><div class="lbl">Заметка</div><textarea id="note" maxlength="1500" placeholder="Кому писал, дата отклика, что спросили на собеседовании…">' + esc(st.n || '') + '</textarea><div class="saved" id="saved"></div></div>' +
-    (j.x ? '<div class="box"><div class="lbl">Из описания</div><div class="desc" id="desc">' + esc(j.x) + '</div>' + (j.x.length > 500 ? '<button class="more" id="descMore">Развернуть</button>' : '') + '</div>' : '') +
+    (j.x ? '<div class="box"><div class="lbl">Из описания</div><div class="desc" id="desc">' + esc(j.x) + '</div>' + (j.x.length > 500 ? '<button class="more" id="descMore">Развернуть</button>' : '') + '</div>'
+         : '<div class="box"><div class="lbl">Описание</div><div class="small">Агент ещё не прочитал описание — оценка пока только по названию, опыт и язык не проверены. Описание подтянется при следующем поиске, а сейчас его можно посмотреть по кнопке «Открыть вакансию».</div></div>') +
     '<div class="small" style="text-align:center">' + esc(src) + (j.f ? ' · найдено ' + esc(j.f) : '') + '</div>';
   $('#detail').classList.add('open');
   $('#detail').scrollTop = 0;
