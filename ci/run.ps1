@@ -80,6 +80,9 @@ if (-not $restored) {
 & (Join-Path $Root 'search.ps1') -NoNotify -Days $days
 if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw "search.ps1 завершился с кодом $LASTEXITCODE" }
 
+# 2б. Дочитать описания вакансий, оценённых только по названию, и пересчитать оценки
+& (Join-Path $Root 'search.ps1') -Rescore -MaxDetails 250
+
 # 3. Чистка: старые вакансии удаляем, тексты укорачиваем
 $jobs = Get-Jobs
 $cut = (Get-Date).AddDays(-$KeepDays).ToString('yyyy-MM-dd HH:mm')

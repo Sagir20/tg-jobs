@@ -32,7 +32,8 @@
     ArbeitnowCountries = '^(Германия|Нидерланды)$'
 
     # Сколько новых вакансий за запуск открывать целиком (чтение требований)
-    MaxDetailsPerRun = 60
+    # (на GitHub Actions сеть быстрая — 250 описаний читаются за несколько минут)
+    MaxDetailsPerRun = 250
 
     # Фильтр по названию
     TitleInclude  = '(?i)embedded|firmware|встраива|микроконтр|stm32|ethercat|electric drive|электропривод|motor|motion|robot|робот|servo|mcu|bsp|嵌入式|固件|电机|伺服|驱动|机器人|运动控制|mechatronik|antriebs|regelungstechnik|hardwarenah'
