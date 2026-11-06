@@ -1,0 +1,72 @@
+name: Поиск вакансий
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # каждый день в 10:00 по Пекину (02:00 UTC)
+  workflow_dispatch:       # кнопка «Run workflow» — запустить вручную
+
+permissions:
+  contents: write   # сохранить зашифрованную базу в ветку db
+  pages: write      # опубликовать приложение
+  id-token: write
+
+concurrency:
+  group: job-search
+  cancel-in-progress: false
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Загрузить базу
+        run: |
+          if git fetch --depth 1 origin db 2>/dev/null; then
+            git show FETCH_HEAD:jobs.enc > store.enc
+            echo "База загружена: $(stat -c %s store.enc) байт"
+          else
+            echo "Базы ещё нет — первый запуск"
+          fi
+
+      - name: Поиск
+        shell: pwsh
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          DATA_KEY: ${{ secrets.DATA_KEY }}
+        run: ./ci/run.ps1
+
+      - name: Сохранить базу
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/db"
+          cp out/jobs.enc "$RUNNER_TEMP/db/"
+          cd "$RUNNER_TEMP/db"
+          git init -q -b db
+          git add jobs.enc
+          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -q -m "База вакансий $(date -u +%F)"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" db
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Уведомление в Telegram
+        shell: pwsh
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          DATA_KEY: ${{ secrets.DATA_KEY }}
+          APP_URL: ${{ steps.deployment.outputs.page_url }}
+        run: ./ci/notify.ps1

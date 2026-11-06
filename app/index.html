@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Вакансии</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:var(--tg-theme-bg-color,#ffffff);
+  --bg2:var(--tg-theme-secondary-bg-color,#f1f2f6);
+  --text:var(--tg-theme-text-color,#111215);
+  --hint:var(--tg-theme-hint-color,#8a8c93);
+  --link:var(--tg-theme-link-color,#2481cc);
+  --btn:var(--tg-theme-button-color,#2481cc);
+  --btnt:var(--tg-theme-button-text-color,#ffffff);
+  --sep:rgba(128,128,128,.18);
+  --A:#2ea44f;--B:#d99a00;--C:#9a9ca3;--warn:#d9534f;
+}
+@media (prefers-color-scheme:dark){
+  :root:not(.tg){--bg:#1c1d21;--bg2:#121316;--text:#ececef;--hint:#8e9097;--link:#5aa9f0;--btn:#3a8ee6}
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg2);color:var(--text);
+  font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+input,textarea{font:inherit;color:var(--text)}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--sep);padding:10px 12px 8px}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--bg2);border-radius:10px;padding:3px}
+.tabs button{padding:7px 2px;border-radius:8px;font-size:13px;font-weight:500;color:var(--hint);white-space:nowrap}
+.tabs button.on{background:var(--bg);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.search{margin-top:8px;display:flex;gap:6px}
+.search input{flex:1;min-width:0;border:0;background:var(--bg2);border-radius:10px;padding:8px 12px;outline:none}
+.search button{background:var(--bg2);border-radius:10px;padding:0 11px;font-size:13px;color:var(--hint);white-space:nowrap}
+.chips{display:flex;gap:6px;overflow-x:auto;margin:8px -12px 0;padding:0 12px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:5px 11px;border-radius:16px;background:var(--bg2);font-size:13px;white-space:nowrap}
+.chip.on{background:var(--btn);color:var(--btnt)}
+.chip .n{opacity:.6;margin-left:3px;font-size:12px}
+
+main{padding:10px 10px 30px}
+.summary{color:var(--hint);font-size:12px;margin:2px 4px 8px}
+.group{font-size:13px;font-weight:600;color:var(--hint);margin:16px 4px 6px;text-transform:uppercase;letter-spacing:.03em}
+.card{background:var(--bg);border-radius:12px;padding:11px 12px;margin-bottom:8px;display:block;width:100%;text-align:left}
+.card:active{opacity:.75}
+.row1{display:flex;gap:8px;align-items:flex-start}
+.dot{flex:none;width:10px;height:10px;border-radius:50%;margin-top:6px;background:var(--C)}
+.dot.A{background:var(--A)}.dot.B{background:var(--B)}
+.ttl{flex:1;min-width:0;font-weight:600;line-height:1.3}
+.new{flex:none;font-size:10px;font-weight:700;background:var(--btn);color:var(--btnt);border-radius:5px;padding:2px 5px;margin-top:2px}
+.co{margin:2px 0 0 18px;font-size:14px}
+.meta{margin:3px 0 0 18px;font-size:13px;color:var(--hint)}
+.why{margin:5px 0 0 18px;font-size:12.5px;color:var(--hint)}
+.flag{margin:3px 0 0 18px;font-size:12.5px;color:var(--warn)}
+.st{display:inline-block;margin:7px 0 0 18px;font-size:12px;background:var(--bg2);border-radius:6px;padding:2px 7px}
+.empty{text-align:center;color:var(--hint);padding:50px 20px}
+.more{display:block;margin:6px auto 0;color:var(--link);font-size:14px;padding:8px 16px}
+
+/* карточка вакансии */
+#detail{position:fixed;inset:0;z-index:10;background:var(--bg2);overflow-y:auto;display:none;padding:12px 12px 40px}
+#detail.open{display:block}
+.box{background:var(--bg);border-radius:12px;padding:14px;margin-bottom:10px}
+.box h1{font-size:19px;line-height:1.3;margin:0 0 4px}
+.box .co,.box .meta,.box .why,.box .flag{margin-left:0}
+.box .co{font-size:15px}
+.lbl{font-size:12px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px}
+.btn{display:block;width:100%;text-align:center;background:var(--btn);color:var(--btnt);border-radius:10px;padding:12px;font-weight:600}
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.sgrid button{background:var(--bg2);border-radius:10px;padding:9px 2px;font-size:13px}
+.sgrid button.on{background:var(--btn);color:var(--btnt)}
+textarea{width:100%;min-height:84px;border:0;background:var(--bg2);border-radius:10px;padding:10px;resize:vertical;outline:none}
+.saved{font-size:12px;color:var(--hint);height:16px;margin-top:4px}
+.desc{white-space:pre-wrap;font-size:14px;line-height:1.45;max-height:260px;overflow:hidden;position:relative}
+.desc.full{max-height:none}
+.small{font-size:12px;color:var(--hint)}
+.back{color:var(--link);font-size:15px;padding:4px 2px 12px;display:none}
+html:not(.tg) .back{display:inline-block}
+
+/* статистика */
+.bar{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:14px}
+.bar .nm{width:120px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .tr{flex:1;height:8px;border-radius:4px;background:var(--bg2);overflow:hidden;display:flex}
+.bar .tr i{display:block;height:100%}
+.bar .v{width:64px;text-align:right;color:var(--hint);font-size:12px;flex:none}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.kpi{background:var(--bg);border-radius:12px;padding:10px;text-align:center}
+.kpi b{display:block;font-size:22px}
+.kpi span{font-size:12px;color:var(--hint)}
+</style>
+</head>
+<body>
+<header id="hdr">
+  <div class="tabs" id="tabs">
+    <button data-v="pick" class="on">Подборка</button>
+    <button data-v="all">Все</button>
+    <button data-v="mine">Мои</button>
+    <button data-v="stats">Сводка</button>
+  </div>
+  <div class="search" id="searchRow">
+    <input id="q" type="search" placeholder="Поиск: ethercat, stm32, компания…" autocomplete="off">
+    <button id="sort" title="Сортировка">↓ оценка</button>
+  </div>
+  <div class="chips" id="chips"></div>
+</header>
+<main id="main"><div class="empty">Загрузка…</div></main>
+<div id="detail"></div>
+
+<script>
+(() => {
+'use strict';
+const tg = window.Telegram && window.Telegram.WebApp;
+const inTg = !!(tg && tg.initData);
+if (inTg) { document.documentElement.classList.add('tg'); tg.ready(); tg.expand(); }
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const haptic = () => { try { tg.HapticFeedback.selectionChanged(); } catch (e) {} };
+
+const STATUSES = [
+  ['fav', '⭐ Интересно'], ['applied', '📨 Отклик'], ['interview', '💬 Собес'],
+  ['offer', '🎉 Оффер'], ['rejected', '❌ Отказ'], ['hidden', '🙈 Скрыть']
+];
+const ST = Object.fromEntries(STATUSES);
+const MINE_ORDER = ['offer', 'interview', 'applied', 'fav', 'rejected', 'hidden'];
+const FLAGS = {'Китай':'🇨🇳','Германия':'🇩🇪','Нидерланды':'🇳🇱','Сербия':'🇷🇸','Армения':'🇦🇲','Казахстан':'🇰🇿','ОАЭ':'🇦🇪','Кипр':'🇨🇾','Россия':'🇷🇺','Remote (EU)':'🌍','Швейцария':'🇨🇭'};
+const EASY = ['Сербия','Армения','Казахстан','ОАЭ','Кипр'];
+const CHIPS = [
+  ['all', 'Все', () => true],
+  ['cn', '🇨🇳 Китай', j => j.co === 'Китай'],
+  ['de', '🇩🇪 Германия', j => j.co === 'Германия'],
+  ['nl', '🇳🇱 Нидерланды', j => j.co === 'Нидерланды'],
+  ['easy', '✈️ Без виз', j => EASY.includes(j.co)],
+  ['remote', '🏠 Удалёнка', j => j.r || j.co === 'Remote (EU)'],
+  ['ru', '🇷🇺 Россия', j => j.co === 'Россия'],
+  ['new', '🆕 Новые', j => isNew(j)]
+];
+
+// ---------- хранилище статусов: Telegram CloudStorage (синхронизируется между устройствами) ----------
+const cloud = inTg && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9') ? tg.CloudStorage : null;
+const store = {
+  get(k) {
+    if (!cloud) { try { return Promise.resolve(localStorage.getItem('ja_' + k)); } catch (e) { return Promise.resolve(null); } }
+    return new Promise(r => cloud.getItem(k, (e, v) => r(e ? null : v)));
+  },
+  set(k, v) {
+    if (!cloud) { try { localStorage.setItem('ja_' + k, v); } catch (e) {} return Promise.resolve(); }
+    return new Promise(r => cloud.setItem(k, v, () => r()));
+  },
+  del(k) {
+    if (!cloud) { try { localStorage.removeItem('ja_' + k); } catch (e) {} return Promise.resolve(); }
+    return new Promise(r => cloud.removeItem(k, () => r()));
+  },
+  async all(prefix) {
+    const out = {};
+    if (!cloud) {
+      try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith('ja_' + prefix)) out[k.slice(3)] = localStorage.getItem(k); } } catch (e) {}
+      return out;
+    }
+    const keys = await new Promise(r => cloud.getKeys((e, ks) => r(e ? [] : ks)));
+    const mine = keys.filter(k => k.startsWith(prefix));
+    for (let i = 0; i < mine.length; i += 50) {
+      const part = await new Promise(r => cloud.getItems(mine.slice(i, i + 50), (e, v) => r(e ? {} : v)));
+      Object.assign(out, part);
+    }
+    return out;
+  }
+};
+const skey = k => 's_' + k.replace(/[^A-Za-z0-9_-]/g, '_');
+
+// ---------- состояние ----------
+let data = null, jobs = [], byKey = {}, statuses = {};
+let view = 'pick', chip = 'all', q = '', sortBy = 'score', limit = 60, prevSeen = '';
+
+function isNew(j) { return prevSeen && j.f > prevSeen; }
+
+// ---------- загрузка и расшифровка ----------
+function b64u(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '=';
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+}
+async function loadData() {
+  const p = new URLSearchParams(location.search);
+  const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+  if (local && p.has('dev')) return (await fetch('data.json', {cache: 'no-store'})).json();   // только для проверки на своём ПК
+
+  let k = p.get('k');
+  try { if (k) localStorage.setItem('ja_key', k); else k = localStorage.getItem('ja_key'); } catch (e) {}
+  if (!k) throw new Error('nokey');
+  const res = await fetch('data.bin?t=' + Date.now(), {cache: 'no-store'});
+  if (!res.ok) throw new Error('Данные ещё не опубликованы (' + res.status + ')');
+  const buf = new Uint8Array(await res.arrayBuffer());
+  const key = await crypto.subtle.importKey('raw', b64u(k), 'AES-GCM', false, ['decrypt']);
+  let plain;
+  try { plain = await crypto.subtle.decrypt({name: 'AES-GCM', iv: buf.slice(0, 12)}, key, buf.slice(12)); }
+  catch (e) { throw new Error('badkey'); }
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+async function init() {
+  try { data = await loadData(); }
+  catch (e) {
+    const msg = e.message === 'nokey' ? 'Открой приложение кнопкой «Вакансии» в чате с ботом.'
+      : e.message === 'badkey' ? 'Не получилось расшифровать данные: ключ в кнопке устарел. Запусти поиск в GitHub ещё раз — бот обновит кнопку.'
+      : 'Не удалось загрузить данные: ' + esc(e.message);
+    $('#main').innerHTML = '<div class="empty">' + msg + '</div>';
+    return;
+  }
+  jobs = data.jobs || [];
+  jobs.forEach(j => byKey[j.k] = j);
+
+  const raw = await store.all('s_');
+  for (const v of Object.values(raw)) { try { const o = JSON.parse(v); if (o && o.k) statuses[o.k] = o; } catch (e) {} }
+
+  prevSeen = (await store.get('seen')) || '';
+  const maxF = jobs.reduce((m, j) => j.f > m ? j.f : m, '');
+  if (maxF && maxF !== prevSeen) store.set('seen', maxF);
+  if (!prevSeen) prevSeen = maxF;   // первый запуск: ничего не помечаем новым
+  render();
+}
+
+// ---------- отбор ----------
+function visible() {
+  const chipFn = (CHIPS.find(c => c[0] === chip) || CHIPS[0])[2];
+  const qq = q.trim().toLowerCase();
+  let list = jobs.filter(j => {
+    const s = statuses[j.k] && statuses[j.k].s;
+    if (view === 'pick' && (!['A', 'B'].includes(j.ti) || s === 'hidden' || s === 'rejected')) return false;
+    if (view === 'all' && s === 'hidden') return false;
+    if (!chipFn(j)) return false;
+    if (qq && !(j.t + ' ' + j.c + ' ' + j.l + ' ' + j.re + ' ' + j.x).toLowerCase().includes(qq)) return false;
+    return true;
+  });
+  list.sort(sortBy === 'date' ? (a, b) => (b.f > a.f ? 1 : b.f < a.f ? -1 : b.sc - a.sc) : (a, b) => b.sc - a.sc || (b.f > a.f ? 1 : -1));
+  return list;
+}
+
+function card(j) {
+  const st = statuses[j.k];
+  const meta = [j.l, j.sa, j.e, j.r ? 'удалённо' : ''].filter(Boolean).join(' · ');
+  return '<button class="card" data-k="' + esc(j.k) + '">' +
+    '<div class="row1"><span class="dot ' + esc(j.ti) + '"></span><div class="ttl">' + esc(j.t) + '</div>' + (isNew(j) ? '<span class="new">NEW</span>' : '') + '</div>' +
+    '<div class="co">' + esc(j.c) + '</div>' +
+    '<div class="meta">' + (FLAGS[j.co] || '📍') + ' ' + esc(meta) + '</div>' +
+    (j.re ? '<div class="why">✅ ' + esc(j.re) + '</div>' : '') +
+    (j.fl ? '<div class="flag">⚠️ ' + esc(j.fl) + '</div>' : '') +
+    (st && st.s ? '<span class="st">' + ST[st.s] + (st.n ? ' · 📝' : '') + '</span>' : (st && st.n ? '<span class="st">📝 заметка</span>' : '')) +
+    '</button>';
+}
+
+function renderChips() {
+  const show = view === 'pick' || view === 'all';
+  $('#chips').style.display = show ? '' : 'none';
+  $('#searchRow').style.display = view === 'stats' ? 'none' : '';
+  if (!show) return;
+  const base = jobs.filter(j => {
+    const s = statuses[j.k] && statuses[j.k].s;
+    return view === 'pick' ? ['A', 'B'].includes(j.ti) && s !== 'hidden' && s !== 'rejected' : s !== 'hidden';
+  });
+  $('#chips').innerHTML = CHIPS.map(c => {
+    const n = base.filter(c[2]).length;
+    if (c[0] !== 'all' && c[0] !== chip && n === 0) return '';
+    return '<button class="chip' + (c[0] === chip ? ' on' : '') + '" data-c="' + c[0] + '">' + c[1] + '<span class="n">' + n + '</span></button>';
+  }).join('');
+}
+
+function render() {
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
+  $('#sort').textContent = sortBy === 'date' ? '↓ дата' : '↓ оценка';
+  renderChips();
+  const main = $('#main');
+  if (view === 'stats') { main.innerHTML = statsHtml(); return; }
+  if (view === 'mine') { main.innerHTML = mineHtml(); return; }
+
+  const list = visible();
+  const upd = data.updated ? new Date(data.updated).toLocaleString('ru-RU', {day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'}) : '';
+  let html = '<div class="summary">' + list.length + ' вакансий' + (upd ? ' · обновлено ' + upd : '') + '</div>';
+  if (!list.length) html += '<div class="empty">Ничего не найдено. Попробуй другой фильтр.</div>';
+  html += list.slice(0, limit).map(card).join('');
+  if (list.length > limit) html += '<button class="more" id="more">Показать ещё ' + Math.min(60, list.length - limit) + '</button>';
+  main.innerHTML = html;
+}
+
+function mineHtml() {
+  const qq = q.trim().toLowerCase();
+  const items = Object.values(statuses).filter(s => s.s || s.n).map(s => byKey[s.k] || Object.assign({k: s.k, ti: 'C', sc: 0, f: '', gone: true}, s.j || {}));
+  const match = j => !qq || ((j.t || '') + ' ' + (j.c || '')).toLowerCase().includes(qq);
+  let html = '';
+  for (const st of MINE_ORDER.concat([''])) {
+    const g = items.filter(j => (statuses[j.k].s || '') === st && match(j));
+    if (!g.length) continue;
+    html += '<div class="group">' + (st ? ST[st] : '📝 С заметкой') + ' · ' + g.length + '</div>' + g.map(card).join('');
+  }
+  return html || '<div class="empty">Здесь будут вакансии, которым ты поставишь статус: ⭐ интересно, 📨 отклик, 💬 собеседование…<br><br>Открой вакансию и выбери статус внизу.</div>';
+}
+
+function statsHtml() {
+  const by = {};
+  jobs.forEach(j => { const c = by[j.co] || (by[j.co] = {A: 0, B: 0, C: 0}); c[j.ti] = (c[j.ti] || 0) + 1; });
+  const rows = Object.entries(by).sort((a, b) => (b[1].A * 3 + b[1].B) - (a[1].A * 3 + a[1].B));
+  const max = Math.max(1, ...rows.map(r => r[1].A + r[1].B + r[1].C));
+  const cnt = s => Object.values(statuses).filter(x => x.s === s).length;
+  const A = jobs.filter(j => j.ti === 'A').length, B = jobs.filter(j => j.ti === 'B').length;
+  let h = '<div class="kpis"><div class="kpi"><b>' + jobs.length + '</b><span>в базе</span></div>' +
+    '<div class="kpi"><b style="color:var(--A)">' + A + '</b><span>🟢 A</span></div>' +
+    '<div class="kpi"><b style="color:var(--B)">' + B + '</b><span>🟡 B</span></div></div>';
+  h += '<div class="box"><div class="lbl">Мои отклики</div>' +
+    ['fav', 'applied', 'interview', 'offer', 'rejected'].map(s => '<div class="bar"><span class="nm">' + ST[s] + '</span><span class="v" style="width:auto;margin-left:auto;font-size:15px;color:var(--text)">' + cnt(s) + '</span></div>').join('') + '</div>';
+  h += '<div class="box"><div class="lbl">По странам (A · B · C)</div>' + rows.map(([c, v]) => {
+    const t = v.A + v.B + v.C;
+    return '<div class="bar"><span class="nm">' + (FLAGS[c] || '📍') + ' ' + esc(c) + '</span><span class="tr">' +
+      '<i style="width:' + (v.A / max * 100) + '%;background:var(--A)"></i><i style="width:' + (v.B / max * 100) + '%;background:var(--B)"></i><i style="width:' + (v.C / max * 100) + '%;background:var(--C);opacity:.5"></i>' +
+      '</span><span class="v">' + v.A + ' · ' + v.B + ' · ' + v.C + '</span></div>';
+  }).join('') + '</div>';
+  if (data.updated) h += '<div class="small" style="text-align:center">Данные обновлены ' + new Date(data.updated).toLocaleString('ru-RU') + '<br>Поиск идёт каждый день в 10:00 по Пекину</div>';
+  return h;
+}
+
+// ---------- карточка вакансии ----------
+let openKey = null;
+function openDetail(k) {
+  const j = byKey[k] || (statuses[k] && Object.assign({k, gone: true}, statuses[k].j || {}));
+  if (!j) return;
+  openKey = k;
+  const st = statuses[k] || {};
+  const meta = [j.l, j.sa, j.e, j.r ? 'удалённо' : ''].filter(Boolean).join(' · ');
+  const src = {linkedin: 'LinkedIn', hh: 'hh.ru', arbeitnow: 'Arbeitnow'}[j.src] || j.src || '';
+  $('#detail').innerHTML =
+    '<button class="back" id="back">‹ Назад</button>' +
+    '<div class="box"><h1>' + esc(j.t) + '</h1><div class="co">' + esc(j.c) + '</div>' +
+    '<div class="meta">' + (FLAGS[j.co] || '📍') + ' ' + esc(meta) + '</div>' +
+    (j.ti ? '<div class="why" style="margin-top:8px"><span class="dot ' + esc(j.ti) + '" style="display:inline-block;margin:0 5px 0 0;vertical-align:middle"></span>Оценка ' + esc(j.ti) + ' (' + (j.sc || 0) + ' балл.)' + (j.re ? ' — ' + esc(j.re) : '') + '</div>' : '') +
+    (j.fl ? '<div class="flag">⚠️ ' + esc(j.fl) + '</div>' : '') +
+    (j.gone ? '<div class="flag">Вакансия старше 90 дней и удалена из базы — сохранились только твои данные.</div>' : '') +
+    '</div>' +
+    (j.u ? '<button class="btn" id="openUrl" style="margin-bottom:10px">Открыть вакансию' + (src ? ' на ' + esc(src) : '') + '</button>' : '') +
+    '<div class="box"><div class="lbl">Статус</div><div class="sgrid">' +
+    STATUSES.map(([s, n]) => '<button data-s="' + s + '" class="' + (st.s === s ? 'on' : '') + '">' + n + '</button>').join('') + '</div></div>' +
+    '<div class="box"><div class="lbl">Заметка</div><textarea id="note" maxlength="1500" placeholder="Кому писал, дата отклика, что спросили на собеседовании…">' + esc(st.n || '') + '</textarea><div class="saved" id="saved"></div></div>' +
+    (j.x ? '<div class="box"><div class="lbl">Из описания</div><div class="desc" id="desc">' + esc(j.x) + '</div>' + (j.x.length > 500 ? '<button class="more" id="descMore">Развернуть</button>' : '') + '</div>' : '') +
+    '<div class="small" style="text-align:center">' + esc(src) + (j.f ? ' · найдено ' + esc(j.f) : '') + '</div>';
+  $('#detail').classList.add('open');
+  $('#detail').scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+  if (inTg) { tg.BackButton.show(); }
+}
+function closeDetail() {
+  openKey = null;
+  $('#detail').classList.remove('open');
+  document.body.style.overflow = '';
+  if (inTg) tg.BackButton.hide();
+  const y = window.scrollY; render(); window.scrollTo(0, y);
+}
+
+let noteTimer = null;
+async function saveStatus(k, patch) {
+  const j = byKey[k] || {};
+  const cur = Object.assign({k}, statuses[k] || {}, patch, {d: Date.now()});
+  if (byKey[k]) cur.j = {t: j.t, c: j.c, u: j.u, co: j.co, l: j.l, src: j.src};
+  if (!cur.s && !cur.n) { delete statuses[k]; await store.del(skey(k)); }
+  else { statuses[k] = cur; await store.set(skey(k), JSON.stringify(cur)); }
+}
+
+// ---------- события ----------
+$('#tabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  view = b.dataset.v; limit = 60; haptic(); render(); window.scrollTo(0, 0);
+});
+$('#chips').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  chip = b.dataset.c; limit = 60; haptic(); render(); window.scrollTo(0, 0);
+});
+$('#sort').addEventListener('click', () => { sortBy = sortBy === 'score' ? 'date' : 'score'; haptic(); render(); });
+let qTimer = null;
+$('#q').addEventListener('input', e => { clearTimeout(qTimer); qTimer = setTimeout(() => { q = e.target.value; limit = 60; render(); }, 200); });
+$('#main').addEventListener('click', e => {
+  if (e.target.id === 'more') { limit += 60; render(); return; }
+  const c = e.target.closest('.card'); if (c) openDetail(c.dataset.k);
+});
+$('#detail').addEventListener('click', async e => {
+  const t = e.target;
+  if (t.id === 'back') { closeDetail(); return; }
+  if (t.id === 'openUrl') {
+    const j = byKey[openKey] || (statuses[openKey] && statuses[openKey].j) || {};
+    if (inTg) tg.openLink(j.u); else window.open(j.u, '_blank', 'noopener');
+    return;
+  }
+  if (t.id === 'descMore') { $('#desc').classList.add('full'); t.remove(); return; }
+  const sb = t.closest('[data-s]');
+  if (sb) {
+    const s = sb.dataset.s;
+    const cur = statuses[openKey] && statuses[openKey].s;
+    const next = cur === s ? '' : s;
+    document.querySelectorAll('.sgrid button').forEach(b => b.classList.toggle('on', b.dataset.s === next));
+    try { tg.HapticFeedback.impactOccurred('light'); } catch (er) {}
+    await saveStatus(openKey, {s: next});
+  }
+});
+$('#detail').addEventListener('input', e => {
+  if (e.target.id !== 'note') return;
+  const k = openKey, v = e.target.value;
+  $('#saved').textContent = '…';
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(async () => { await saveStatus(k, {n: v.trim()}); if (openKey === k) $('#saved').textContent = 'Сохранено'; }, 600);
+});
+if (inTg) tg.BackButton.onClick(closeDetail);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && openKey) closeDetail(); });
+
+init();
+})();
+</script>
+</body>
+</html>
