@@ -326,7 +326,7 @@ function openDetail(k) {
   openKey = k;
   const st = statuses[k] || {};
   const meta = [j.l, j.sa, j.e, j.r ? 'удалённо' : ''].filter(Boolean).join(' · ');
-  const src = {linkedin: 'LinkedIn', hh: 'hh.ru', arbeitnow: 'Arbeitnow'}[j.src] || j.src || '';
+  const src = {linkedin: 'LinkedIn', hh: 'hh.ru', arbeitnow: 'Arbeitnow', ba: 'Arbeitsagentur', telegram: 'Telegram'}[j.src] || j.src || '';
   $('#detail').innerHTML =
     '<button class="back" id="back">‹ Назад</button>' +
     '<div class="box"><h1>' + esc(j.t) + '</h1><div class="co">' + esc(j.c) + '</div>' +

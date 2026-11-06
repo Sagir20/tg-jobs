@@ -177,6 +177,68 @@ function Search-Arbeitnow($pages) {
     $res
 }
 
+# Страна по тексту объявления (для Telegram-каналов, где нет поля «страна»)
+function Get-CountryFromText($s) {
+    $map = [ordered]@{
+        'Китай'      = '(?i)\bchina\b|китай|shanghai|shenzhen|beijing|hangzhou|шанхай|пекин|шэньчжэнь'
+        'Германия'   = '(?i)\bgermany\b|deutschland|германи|berlin|munich|münchen|берлин|мюнхен'
+        'Нидерланды' = '(?i)netherlands|amsterdam|eindhoven|rotterdam|нидерланд|амстердам'
+        'Сербия'     = '(?i)serbia|belgrade|novi sad|серби|белград'
+        'Армения'    = '(?i)armenia|yerevan|армени|ереван'
+        'Казахстан'  = '(?i)kazakhstan|almaty|astana|казахстан|алмат|астан'
+        'ОАЭ'        = '(?i)\buae\b|dubai|abu dhabi|оаэ|дубай|абу-даби'
+        'Кипр'       = '(?i)cyprus|limassol|кипр|лимассол'
+        'Россия'     = '(?i)москв|санкт-петербург|россия|\bрф\b'
+    }
+    foreach ($k in $map.Keys) { if ($s -match $map[$k]) { return $k } }
+    'Не указано'
+}
+
+# Открытые Telegram-каналы с вакансиями (веб-версия t.me/s/<канал>, без входа)
+function Search-Telegram($channel, $days) {
+    $res = @()
+    $since = (Get-Date).ToUniversalTime().AddDays(-$days)
+    $h = Get-Html "https://t.me/s/$channel"
+    if (-not $h) { return $res }
+    foreach ($p in @([regex]::Split($h, 'data-post="') | Select-Object -Skip 1)) {
+        $post = [regex]::Match($p, '^([^"]+)"').Groups[1].Value
+        if (-not $post) { continue }
+        $dt = [regex]::Match($p, 'datetime="([^"]+)"').Groups[1].Value
+        if ($dt) { try { if ([datetime]::Parse($dt).ToUniversalTime() -lt $since) { continue } } catch {} }
+        $text = ConvertFrom-Html ([regex]::Match($p, 'tgme_widget_message_text[^>]*>(.*?)</div>', 's').Groups[1].Value)
+        if (-not $text) { continue }
+        # Заголовок — первая содержательная строка без хэштегов и эмодзи
+        $lines = @($text -split "`n" | ForEach-Object { ($_ -replace '#\S+', '' -replace '[^\p{L}\p{N}\s\-/().,+&:|@]', '').Trim() } | Where-Object { $_.Length -ge 4 })
+        if (-not $lines) { continue }
+        $title = $lines[0]; $company = "@$channel"
+        $m = [regex]::Match($title, '^(.+?)\s+(?:/|\||@|—|–)\s+(.+)$')
+        if ($m.Success) { $title = $m.Groups[1].Value.Trim(); $company = $m.Groups[2].Value.Trim() }
+        if ($title.Length -gt 120) { $title = $title.Substring(0, 120) }
+        $id = ($post -split '/')[-1]
+        $j = New-Job 'telegram' "$channel`_$id" $title $company "t.me/$channel" (Get-CountryFromText $text) "https://t.me/$post"
+        $j.remote = [bool]($text -match '(?i)\bremote\b|удал[её]н')
+        $j | Add-Member -NotePropertyName _text -NotePropertyValue $text
+        $res += $j
+    }
+    $res
+}
+
+# Bundesagentur für Arbeit — крупнейшая база вакансий Германии.
+# X-API-Key 'jobboerse-jobsuche' — общий публичный идентификатор из открытой документации API (bund.dev), не секрет.
+$BaHeaders = @{ 'X-API-Key' = 'jobboerse-jobsuche' }
+function Search-BA($q, $days) {
+    $res = @()
+    $u = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobs?was=$([uri]::EscapeDataString($q))&veroeffentlichtseit=$([Math]::Min($days, 100))&size=100&angebotsart=1"
+    try { $r = Invoke-RestMethod -Uri $u -Headers $BaHeaders -UserAgent $UA -TimeoutSec 40 }
+    catch { Write-Log "WARN: Bundesagentur недоступна: $($_.Exception.Message)"; return $res }
+    foreach ($s in @($r.stellenangebote)) {
+        if (-not $s.refnr -or -not $s.titel) { continue }
+        $loc = (@($s.arbeitsort.ort, $s.arbeitsort.region) | Where-Object { $_ } | Select-Object -Unique) -join ', '
+        $res += New-Job 'ba' $s.refnr $s.titel $s.arbeitgeber $loc 'Германия' "https://www.arbeitsagentur.de/jobsuche/jobdetail/$($s.refnr)"
+    }
+    $res
+}
+
 # Полный текст вакансии (для оценки требований)
 function Get-JobText($job) {
     switch ($job.source) {
@@ -191,6 +253,18 @@ function Get-JobText($job) {
             return ConvertFrom-Html ([regex]::Match("$h", 'data-qa="vacancy-description"[^>]*>(.*?)</div>\s*</div>', 's').Groups[1].Value)
         }
         'arbeitnow' { return $job._text }
+        'telegram' { return $job._text }
+        'ba' {
+            try {
+                $enc = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($job.id))
+                $d = Invoke-RestMethod -Uri "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobdetails/$enc" -Headers $BaHeaders -UserAgent $UA -TimeoutSec 40
+                $t = "$($d.stellenangebotsBeschreibung)$($d.stellenbeschreibung)"
+                if ($t) { return ConvertFrom-Html $t }
+            } catch {}
+            $h = Get-Html $job.url
+            $body = [regex]::Match("$h", '<body[^>]*>(.*)</body>', 's').Groups[1].Value -replace '(?s)<script.*?</script>|<style.*?</style>', ''
+            return ConvertFrom-Html $body
+        }
     }
     ''
 }
@@ -229,6 +303,14 @@ function Set-JobScore($job, $text, $cfg) {
     # Языки и сфера
     if ($text -match $cfg.GermanFluent) { $block += 'нужен немецкий' }
     if ($text -match $cfg.DutchFluent) { $block += 'нужен нидерландский' }
+    # Описание целиком на немецком / нидерландском — язык почти наверняка нужен (пометка, не отсев)
+    if ("$text".Length -gt 300) {
+        $en = [regex]::Matches($text, '(?i)\b(and|the|with|you|our|experience|will|are|team)\b').Count
+        $de = [regex]::Matches($text, '(?i)\b(und|der|die|das|mit|für|wir|ihre|eine|oder|sowie|kenntnisse)\b').Count
+        $nl = [regex]::Matches($text, '(?i)\b(het|een|wij|voor|naar|ervaring|kennis|bij|zijn)\b').Count
+        if ($de -gt 15 -and $de -gt 2 * $en) { $s -= 2; $notes += 'описание на немецком' }
+        elseif ($nl -gt 15 -and $nl -gt 2 * $en) { $s -= 2; $notes += 'описание на нидерландском' }
+    }
     if ($job.country -eq 'Китай' -and ([regex]::Matches("$title $text", '[一-鿿]').Count -gt 80)) { $s -= 1; $notes += 'описание на китайском' }
     if ("$title $($job.company) $text" -match $cfg.Defense) { $block += 'оборонка/БПЛА' }
 

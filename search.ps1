@@ -32,7 +32,7 @@ try {
         # Сначала дочитываем зарубежные (LinkedIn быстрый), потом hh.ru
         foreach ($j in ($jobs.Values | Sort-Object @{ e = { if ($_.source -eq 'linkedin') { 0 } else { 1 } } })) {
             $text = "$($j.text)"
-            if ((-not $j.checked -or -not $text) -and $j.source -ne 'arbeitnow' -and $i -lt $MaxDetails) {
+            if ((-not $j.checked -or -not $text) -and $j.source -notin 'arbeitnow', 'telegram' -and $i -lt $MaxDetails) {
                 $text = Get-JobText $j
                 $j.checked = $true
                 Set-JobText $j $text
@@ -66,6 +66,16 @@ try {
     $r = @(Search-Arbeitnow $cfg.ArbeitnowPages | Where-Object { $_.country -match $cfg.ArbeitnowCountries })
     Write-Log "Arbeitnow (DE/NL): $($r.Count)"
     $found += $r
+    foreach ($q in $cfg.BAQueries) {
+        $r = @(Search-BA $q $Days)
+        Write-Log ("Bundesagentur {0}: {1}" -f $q, $r.Count)
+        $found += $r
+    }
+    foreach ($ch in $cfg.TelegramChannels) {
+        $r = @(Search-Telegram $ch $Days)
+        Write-Log ("Telegram  @{0}: {1}" -f $ch, $r.Count)
+        $found += $r
+    }
 
     # Фильтр по названию и отбрасывание уже известных
     $new = @{}
@@ -85,7 +95,7 @@ try {
             $text = Get-JobText $j
             $j.checked = $true
             $i++
-            if ($j.source -ne 'arbeitnow') { Start-Sleep -Milliseconds 1200 }
+            if ($j.source -notin 'arbeitnow', 'telegram') { Start-Sleep -Milliseconds 1200 }
         }
         Set-JobScore $j $text $cfg
         Set-JobText $j "$text"

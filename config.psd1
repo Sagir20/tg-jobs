@@ -31,6 +31,12 @@
     ArbeitnowPages     = 10
     ArbeitnowCountries = '^(Германия|Нидерланды)$'
 
+    # Bundesagentur für Arbeit (Германия). Большинство вакансий на немецком — такие получают пометку
+    BAQueries = @('Embedded Software', 'Firmware', 'Embedded C', 'Motion Control', 'EtherCAT')
+
+    # Открытые Telegram-каналы с вакансиями (имя после t.me/). Добавляй свои
+    TelegramChannels = @('opento_dev', 'young_relocate', 'devjobs')
+
     # Сколько новых вакансий за запуск открывать целиком (чтение требований)
     # (на GitHub Actions сеть быстрая — 250 описаний читаются за несколько минут)
     MaxDetailsPerRun = 250
